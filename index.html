@@ -2,247 +2,515 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
-  <title>Mini App — Тренажер для глаз</title>
-
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+  <title>Eye Trainer Pro</title>
+  
   <style>
-    :root{
-      --bg:#0f1724;
-      --card:#0b1220;
-      --accent:#ff7a59;
-      --muted:#9aa4b2;
-    }
-    *{box-sizing:border-box}
-    html,body{
-      height:100%;margin:0;
-      font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
-      color:#e6eef6;
-      background:linear-gradient(180deg,var(--bg),#071022);
+    :root {
+      --bg-color: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #3b82f6;
+      --accent-glow: rgba(59, 130, 246, 0.4);
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --danger: #ef4444;
     }
 
-    .app{max-width:420px;margin:18px auto;padding:14px;}
-    .panel{
-      background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015));
-      border-radius:18px;padding:12px;
-      box-shadow:0 6px 30px rgba(2,6,23,0.6);
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    
+    body {
+      margin: 0;
+      height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-color);
+      color: var(--text-main);
+      overflow: hidden; /* Блокируем скролл всей страницы */
+      display: flex;
+      flex-direction: column;
     }
 
-    .header{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:10px 6px
+    /* --- LAYOUT --- */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      padding: 16px;
+      padding-top: calc(16px + env(safe-area-inset-top)); /* Отступ для iPhone */
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
     }
 
-    .user{display:flex;flex-direction:column;align-items:center;gap:6px;flex:1}
-    .avatar{
-      width:64px;height:64px;border-radius:18px;
-      background:linear-gradient(135deg,#22334a,#1a2740);
-      display:flex;align-items:center;justify-content:center;
+    /* Верхняя панель инфо */
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
     }
-    .username{font-weight:600}
-    .sub{font-size:12px;color:var(--muted)}
-
-    .menu-btn{
-      background:transparent;border:none;
-      color:#fff;font-size:22px;cursor:pointer
+    .app-title {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
-
-    .stage{
-      height:520px;border-radius:14px;margin-top:12px;
-      display:flex;align-items:center;justify-content:center;
-      position:relative;overflow:hidden;
-    }
-
-    .eye{
-      width:210px;height:210px;border-radius:50%;
-      background:radial-gradient(circle,#fff,#cfe6ff,#4a7bd8);
-      display:flex;align-items:center;justify-content:center;
-    }
-    .sclera{
-      width:86%;height:86%;border-radius:50%;
-      background:#fff;position:relative;
-    }
-    .pupil{
-      width:36%;height:36%;border-radius:50%;
-      background:#0b1220;position:absolute;
-      left:50%;top:50%;
-      transform:translate(-50%,-50%);
+    .timer-badge {
+      background: rgba(255,255,255,0.1);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-feature-settings: "tnum";
+      font-variant-numeric: tabular-nums;
+      font-size: 14px;
     }
 
-    .target{
-      position:absolute;width:34px;height:34px;
-      border-radius:50%;background:var(--accent);
-      display:none;
+    /* Сцена анимации */
+    .stage-container {
+      flex: 1;
+      position: relative;
+      background: radial-gradient(circle at center, #263346 0%, #0f172a 70%);
+      border-radius: 24px;
+      border: 1px solid rgba(255,255,255,0.05);
+      box-shadow: inset 0 0 40px rgba(0,0,0,0.5);
+      overflow: hidden;
+      margin-bottom: 20px;
     }
 
-    .controls{
-      display:flex;gap:10px;justify-content:center;padding:14px
+    /* Центральный глаз (фон) */
+    .eye-bg {
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 120px; height: 120px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+      display: flex; align-items: center; justify-content: center;
+      transition: transform 0.2s;
     }
-    button{
-      background:var(--accent);border:none;color:#fff;
-      padding:12px 18px;border-radius:12px;
-      font-weight:600;cursor:pointer;
+    .eye-iris {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #60a5fa, #2563eb);
+      position: relative;
     }
-    button.ghost{
-      background:transparent;border:1px solid rgba(255,255,255,0.1);
-      color:var(--muted)
+    .eye-pupil {
+      width: 24px; height: 24px;
+      background: #000;
+      border-radius: 50%;
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%); /* Будет перезаписано JS */
+    }
+    .eye-reflection {
+      position: absolute;
+      width: 10px; height: 10px;
+      background: rgba(255,255,255,0.8);
+      border-radius: 50%;
+      top: 12px; left: 12px;
     }
 
-    .footer-note{
-      font-size:12px;color:var(--muted);text-align:center;
+    /* Цель для слежения */
+    .target-dot {
+      position: absolute;
+      width: 30px; height: 30px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 20px var(--accent-glow), 0 0 10px var(--accent);
+      border: 2px solid #fff;
+      pointer-events: none;
+      display: none; /* Скрыт пока не запущен */
+      will-change: transform;
     }
 
-    /* MENU */
-    .menu-overlay{
-      position:fixed;inset:0;
-      background:rgba(0,0,0,0.5);
-      display:none;align-items:center;justify-content:center;
-      z-index:100;
+    /* Кнопки управления */
+    .controls-bar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
     }
-    .menu{
-      background:var(--card);
-      padding:20px;border-radius:16px;width:280px;
+
+    .btn {
+      border: none;
+      border-radius: 16px;
+      padding: 16px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
     }
-    .menu h3{text-align:center;margin-top:0}
-    .menu label{
-      display:flex;flex-direction:column;
-      gap:6px;margin-bottom:14px;
-      font-size:14px;color:var(--muted);
+    .btn:active { transform: scale(0.96); }
+    
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
     }
-    .menu select,.menu input{
-      background:#0f1724;color:#fff;
-      border:1px solid rgba(255,255,255,0.08);
-      padding:8px;border-radius:10px;
+    .btn-danger {
+      background: var(--danger);
+      color: #fff;
+    }
+    .btn-icon {
+      background: var(--card-bg);
+      color: var(--text-main);
+      width: 54px; 
+      padding: 0;
+    }
+
+    /* --- SETTINGS SHEET (Bottom Sheet) --- */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.3s;
+      display: flex; flex-direction: column; justify-content: flex-end;
+    }
+    .overlay.active { opacity: 1; pointer-events: auto; }
+
+    .sheet {
+      background: var(--card-bg);
+      border-radius: 24px 24px 0 0;
+      padding: 24px;
+      transform: translateY(100%);
+      transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
+      padding-bottom: calc(24px + env(safe-area-inset-bottom));
+    }
+    .overlay.active .sheet { transform: translateY(0); }
+
+    .sheet-header {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-bottom: 24px;
+    }
+    .sheet-title { font-size: 20px; font-weight: 700; margin: 0; }
+    
+    .setting-group { margin-bottom: 20px; }
+    .setting-label {
+      display: block; color: var(--text-muted);
+      font-size: 13px; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    /* Кастомные радио-кнопки для режимов */
+    .mode-selector {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;
+    }
+    .mode-opt {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid transparent;
+      padding: 12px;
+      border-radius: 12px;
+      text-align: center;
+      cursor: pointer;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    .mode-opt.active {
+      background: rgba(59, 130, 246, 0.15);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    /* Слайдеры */
+    input[type=range] {
+      width: 100%; -webkit-appearance: none; background: transparent;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 24px; width: 24px;
+      border-radius: 50%;
+      background: #fff;
+      margin-top: -10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%; height: 4px;
+      background: rgba(255,255,255,0.2);
+      border-radius: 2px;
+    }
+
+    /* Анимация пульсации для фокуса */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.8); opacity: 0.5; }
+      100% { transform: scale(2); opacity: 0; }
+    }
+    .target-dot::after {
+      content: ''; position: absolute; inset: -4px;
+      border-radius: 50%; border: 1px solid var(--accent);
+      animation: pulse-ring 2s infinite;
     }
   </style>
 </head>
-
 <body>
-<div class="app">
-  <div class="panel">
 
-    <div class="header">
-      <div style="width:32px"></div>
-      <div class="user">
-        <div class="avatar"></div>
-        <div class="username">Гость</div>
-        <div class="sub">eye trainer</div>
-      </div>
-      <button class="menu-btn" id="menuBtn">☰</button>
+<div class="app-container">
+  <div class="top-bar">
+    <div class="app-title">
+      👁️ Eye Trainer
     </div>
+    <div class="timer-badge" id="timerDisplay">00:00</div>
+  </div>
 
-    <div class="stage" id="stage">
-      <div class="eye" id="eye">
-        <div class="sclera">
-          <div class="pupil" id="pupil"></div>
+  <div class="stage-container" id="stage">
+    <div class="eye-bg" id="mainEye">
+      <div class="eye-iris">
+        <div class="eye-pupil" id="mainPupil">
+          <div class="eye-reflection"></div>
         </div>
       </div>
-      <div class="target" id="target"></div>
     </div>
+    <div class="target-dot" id="target"></div>
+  </div>
 
-    <div class="controls">
-      <button id="startBtn">Начать</button>
-      <button class="ghost" id="stopBtn" style="display:none">Стоп</button>
-    </div>
-
-    <div class="footer-note">
-      Следите глазами за точкой, не двигая головой
-    </div>
-
+  <div class="controls-bar">
+    <button class="btn btn-primary" id="actionBtn">Начать тренировку</button>
+    <button class="btn btn-icon" id="settingsBtn">
+      ⚙️
+    </button>
   </div>
 </div>
 
-<!-- MENU -->
-<div class="menu-overlay" id="menuOverlay">
-  <div class="menu">
-    <h3>Настройки</h3>
+<div class="overlay" id="settingsOverlay">
+  <div class="sheet">
+    <div class="sheet-header">
+      <h3 class="sheet-title">Настройки</h3>
+      <div style="cursor:pointer; padding:10px" id="closeSettings">✕</div>
+    </div>
 
-    <label>
-      Скорость
-      <select id="speedSelect">
-        <option value="0.4">Медленно</option>
-        <option value="0.6" selected>Нормально</option>
-        <option value="0.9">Быстро</option>
-      </select>
-    </label>
+    <div class="setting-group">
+      <span class="setting-label">Режим движения</span>
+      <div class="mode-selector" id="modeContainer">
+        <div class="mode-opt active" data-mode="infinity">♾️ Восьмерка</div>
+        <div class="mode-opt" data-mode="circle">⭕ Круг</div>
+        <div class="mode-opt" data-mode="horizontal">↔️ Горизонталь</div>
+        <div class="mode-opt" data-mode="random">🎲 Хаос</div>
+      </div>
+    </div>
 
-    <label>
-      Длительность
-      <select id="durationSelect">
-        <option value="30000">30 сек</option>
-        <option value="60000" selected>60 сек</option>
-        <option value="90000">90 сек</option>
-      </select>
-    </label>
+    <div class="setting-group">
+      <span class="setting-label">Скорость</span>
+      <input type="range" id="speedRange" min="1" max="5" step="0.5" value="2.5">
+    </div>
 
-    <label>
-      Размер точки
-      <input type="range" id="sizeRange" min="16" max="48" value="34">
-    </label>
+    <div class="setting-group">
+      <span class="setting-label">Время: <span id="durVal">60</span> сек</span>
+      <input type="range" id="durationRange" min="15" max="180" step="15" value="60">
+    </div>
 
-    <button class="ghost" id="closeMenu">Закрыть</button>
+    <button class="btn btn-primary" style="width:100%" id="saveBtn">Готово</button>
   </div>
 </div>
 
 <script>
+  // Elements
   const stage = document.getElementById('stage');
-  const pupil = document.getElementById('pupil');
   const target = document.getElementById('target');
-  const startBtn = document.getElementById('startBtn');
-  const stopBtn = document.getElementById('stopBtn');
+  const mainEye = document.getElementById('mainEye');
+  const mainPupil = document.getElementById('mainPupil');
+  const actionBtn = document.getElementById('actionBtn');
+  const settingsBtn = document.getElementById('settingsBtn');
+  const overlay = document.getElementById('settingsOverlay');
+  const closeSettings = document.getElementById('closeSettings');
+  const saveBtn = document.getElementById('saveBtn');
+  const timerDisplay = document.getElementById('timerDisplay');
+  const modeOpts = document.querySelectorAll('.mode-opt');
+  const speedRange = document.getElementById('speedRange');
+  const durationRange = document.getElementById('durationRange');
+  const durVal = document.getElementById('durVal');
 
-  const menuBtn = document.getElementById('menuBtn');
-  const menuOverlay = document.getElementById('menuOverlay');
-  const closeMenu = document.getElementById('closeMenu');
-
-  const speedSelect = document.getElementById('speedSelect');
-  const durationSelect = document.getElementById('durationSelect');
-  const sizeRange = document.getElementById('sizeRange');
-
-  let running=false, timer=null;
-  let path={t:0,speed:0.6};
-  let duration=60000;
-
-  menuBtn.onclick=()=>menuOverlay.style.display='flex';
-  closeMenu.onclick=()=>menuOverlay.style.display='none';
-  menuOverlay.onclick=e=>{if(e.target===menuOverlay)menuOverlay.style.display='none'}
-
-  speedSelect.onchange=()=>path.speed=parseFloat(speedSelect.value);
-  durationSelect.onchange=()=>duration=parseInt(durationSelect.value);
-  sizeRange.oninput=()=>{
-    target.style.width=sizeRange.value+'px';
-    target.style.height=sizeRange.value+'px';
+  // State
+  let state = {
+    running: false,
+    mode: 'infinity',
+    speed: 2.5,
+    duration: 60,
+    startTime: 0,
+    animationId: null,
+    w: 0, h: 0, 
+    randomPoints: [] 
   };
 
-  function loop(){
-    if(!running)return;
-    path.t+=path.speed*0.01;
-    const w=stage.clientWidth,h=stage.clientHeight;
-    const x=w/2+Math.sin(path.t)*w*0.35;
-    const y=h/2+Math.sin(path.t*0.7)*h*0.35;
-    target.style.left=(x-17)+'px';
-    target.style.top=(y-17)+'px';
-    pupil.style.left='50%';
-    pupil.style.top='50%';
-    requestAnimationFrame(loop);
+  // Init
+  window.addEventListener('resize', updateDims);
+  function updateDims() {
+    state.w = stage.clientWidth;
+    state.h = stage.clientHeight;
+  }
+  updateDims();
+
+  // Settings Logic
+  settingsBtn.onclick = () => overlay.classList.add('active');
+  const closeMenu = () => overlay.classList.remove('active');
+  closeSettings.onclick = closeMenu;
+  saveBtn.onclick = closeMenu;
+  overlay.onclick = (e) => { if(e.target === overlay) closeMenu(); };
+
+  modeOpts.forEach(opt => {
+    opt.onclick = () => {
+      modeOpts.forEach(o => o.classList.remove('active'));
+      opt.classList.add('active');
+      state.mode = opt.dataset.mode;
+    };
+  });
+
+  durationRange.oninput = () => {
+    state.duration = parseInt(durationRange.value);
+    durVal.innerText = state.duration;
+    timerDisplay.innerText = formatTime(state.duration);
+  };
+  
+  speedRange.oninput = () => state.speed = parseFloat(speedRange.value);
+
+  // Main Loop
+  function startTraining() {
+    state.running = true;
+    state.startTime = Date.now();
+    
+    target.style.display = 'block';
+    actionBtn.textContent = 'Стоп';
+    actionBtn.classList.replace('btn-primary', 'btn-danger');
+    settingsBtn.disabled = true;
+    settingsBtn.style.opacity = 0.5;
+
+    if(state.mode === 'random') generateRandomPath();
+
+    loop();
   }
 
-  startBtn.onclick=()=>{
-    running=true;
-    target.style.display='block';
-    startBtn.style.display='none';
-    stopBtn.style.display='inline-block';
-    path.t=0;
-    timer=setTimeout(()=>stopBtn.click(),duration);
-    loop();
+  function stopTraining() {
+    state.running = false;
+    cancelAnimationFrame(state.animationId);
+    
+    target.style.display = 'none';
+    actionBtn.textContent = 'Начать снова';
+    actionBtn.classList.replace('btn-danger', 'btn-primary');
+    settingsBtn.disabled = false;
+    settingsBtn.style.opacity = 1;
+    
+    // Сброс глаза в центр
+    mainPupil.style.transform = `translate(-50%, -50%)`;
+    timerDisplay.innerText = formatTime(state.duration);
+  }
+
+  actionBtn.onclick = () => {
+    if(state.running) stopTraining();
+    else startTraining();
   };
 
-  stopBtn.onclick=()=>{
-    running=false;
-    target.style.display='none';
-    startBtn.style.display='inline-block';
-    stopBtn.style.display='none';
-    clearTimeout(timer);
-  };
+  // Helpers
+  function formatTime(sec) {
+    const m = Math.floor(sec / 60).toString().padStart(2, '0');
+    const s = (sec % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  function generateRandomPath() {
+    state.randomPoints = [];
+    for(let i=0; i<20; i++) {
+      state.randomPoints.push({
+        x: Math.random(), 
+        y: Math.random()
+      });
+    }
+  }
+
+  function getPosition(t) {
+    const w = state.w - 60;
+    const h = state.h - 60;
+    const cx = state.w / 2;
+    const cy = state.h / 2;
+
+    let x = cx, y = cy;
+
+    if (state.mode === 'circle') {
+      x = cx + Math.cos(t) * (w/2.5);
+      y = cy + Math.sin(t) * (w/2.5); 
+    } 
+    else if (state.mode === 'infinity') {
+      const scale = w / 2.2;
+      x = cx + (scale * Math.cos(t)) / (1 + Math.sin(t)**2);
+      y = cy + (scale * Math.cos(t) * Math.sin(t)) / (1 + Math.sin(t)**2);
+    }
+    else if (state.mode === 'horizontal') {
+      x = cx + Math.sin(t) * (w/2.2);
+      y = cy;
+    }
+    else if (state.mode === 'random') {
+      // Simple interpolation between random points
+      const cycleDuration = 3;
+      const pIndex = Math.floor(t) % state.randomPoints.length;
+      const nextIndex = (pIndex + 1) % state.randomPoints.length;
+      const localT = t % 1; 
+      
+      // Smooth step
+      const smoothT = localT * localT * (3 - 2 * localT);
+      
+      const p1 = state.randomPoints[pIndex];
+      const p2 = state.randomPoints[nextIndex];
+
+      x = 30 + (p1.x + (p2.x - p1.x) * smoothT) * w;
+      y = 30 + (p1.y + (p2.y - p1.y) * smoothT) * h;
+    }
+
+    return {x, y};
+  }
+
+  function moveEye(targetX, targetY) {
+    const rect = mainEye.getBoundingClientRect();
+    const eyeCX = rect.left + rect.width/2;
+    const eyeCY = rect.top + rect.height/2;
+
+    const dx = targetX - eyeCX;
+    const dy = targetY - eyeCY;
+    
+    const angle = Math.atan2(dy, dx);
+    const dist = Math.min(12, Math.sqrt(dx*dx + dy*dy) / 10); // Limit pupil movement
+
+    const px = Math.cos(angle) * dist;
+    const py = Math.sin(angle) * dist;
+
+    mainPupil.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
+  }
+
+  function loop() {
+    if(!state.running) return;
+
+    const now = Date.now();
+    const elapsed = now - state.startTime;
+    const remaining = Math.max(0, state.duration * 1000 - elapsed);
+    
+    // Timer update
+    timerDisplay.innerText = formatTime(Math.ceil(remaining/1000));
+    if(remaining <= 0) {
+      stopTraining();
+      return;
+    }
+
+    // Movement math
+    // Speed factor: 0.001 is base time scale. 
+    let speedMult = state.speed; 
+    if(state.mode === 'horizontal') speedMult *= 1.5;
+    
+    const t = (elapsed * 0.001) * speedMult; 
+    const pos = getPosition(t);
+
+    target.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
+    target.style.left = '0px'; 
+    target.style.top = '0px';
+    target.style.transform = `translate3d(${pos.x - 15}px, ${pos.y - 15}px, 0)`;
+
+    // Move the big eye pupil
+    
+    const stageRect = stage.getBoundingClientRect();
+    const absX = stageRect.left + pos.x;
+    const absY = stageRect.top + pos.y;
+    
+    moveEye(absX, absY);
+
+    state.animationId = requestAnimationFrame(loop);
+  }
+  
+  // Initial set
+  timerDisplay.innerText = formatTime(state.duration);
 </script>
 
 </body>
